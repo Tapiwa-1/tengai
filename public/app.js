@@ -6,6 +6,7 @@ createApp({
       products: [],
       categories: [],
       cart: [],
+      error: '',
       filters: {
         q: '',
         category: '',
@@ -22,21 +23,38 @@ createApp({
     }
   },
   methods: {
+    async request(url, options) {
+      const res = await fetch(url, options);
+      if (!res.ok) {
+        throw new Error(`Request failed: ${res.status}`);
+      }
+      return res.json();
+    },
     async fetchProducts() {
-      const params = new URLSearchParams(this.filters).toString();
-      const res = await fetch(`/api/products?${params}`);
-      this.products = await res.json();
+      try {
+        const params = new URLSearchParams(this.filters).toString();
+        this.products = await this.request(`/api/products?${params}`);
+        this.error = '';
+      } catch (_error) {
+        this.error = 'Could not load products. Start the Express server to use live data.';
+      }
     },
     async fetchCategories() {
-      const res = await fetch('/api/categories');
-      this.categories = await res.json();
+      try {
+        this.categories = await this.request('/api/categories');
+      } catch (_error) {
+        this.categories = [];
+      }
     },
     async fetchCart() {
-      const res = await fetch('/api/cart');
-      this.cart = await res.json();
+      try {
+        this.cart = await this.request('/api/cart');
+      } catch (_error) {
+        this.cart = [];
+      }
     },
     async addToCart(productId) {
-      await fetch('/api/cart', {
+      await this.request('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId })
@@ -44,11 +62,11 @@ createApp({
       await this.fetchCart();
     },
     async removeFromCart(itemId) {
-      await fetch(`/api/cart/${itemId}`, { method: 'DELETE' });
+      await this.request(`/api/cart/${itemId}`, { method: 'DELETE' });
       await this.fetchCart();
     },
     async clearCart() {
-      await fetch('/api/cart', { method: 'DELETE' });
+      await this.request('/api/cart', { method: 'DELETE' });
       await this.fetchCart();
     }
   },
