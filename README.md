@@ -30,3 +30,8 @@ cd frontend
 npm install
 npm run dev
 ```
+
+
+### Troubleshooting DB connection
+
+If your `DATABASE_URL` is set to MySQL and MySQL is not running, the app will automatically fall back to `sqlite:///tengai.db` during startup so local development can continue.

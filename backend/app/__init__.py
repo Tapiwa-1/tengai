@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from flask import Flask, request, send_from_directory
+from sqlalchemy import create_engine
 
 from .config import Config
 from .extensions import db, migrate
@@ -12,9 +13,26 @@ from .routes.orders import bp as orders_bp
 from .routes.products import bp as products_bp
 
 
+def _ensure_database_uri(app: Flask):
+    current_uri = app.config["SQLALCHEMY_DATABASE_URI"]
+    if not current_uri.startswith("mysql"):
+        return
+
+    try:
+        engine = create_engine(current_uri)
+        with engine.connect():
+            pass
+    except Exception:
+        fallback_uri = "sqlite:///tengai.db"
+        app.logger.warning("MySQL is unreachable, falling back to SQLite at %s", fallback_uri)
+        app.config["SQLALCHEMY_DATABASE_URI"] = fallback_uri
+
+
 def create_app(config_object=Config):
     app = Flask(__name__)
     app.config.from_object(config_object)
+
+    _ensure_database_uri(app)
 
     upload_dir = Path(app.root_path).parent / app.config["UPLOAD_FOLDER"]
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -28,7 +46,6 @@ def create_app(config_object=Config):
     app.register_blueprint(agent_bp)
     app.register_blueprint(orders_bp)
     app.register_blueprint(admin_bp)
-
 
     @app.before_request
     def cors_preflight():
