@@ -48,3 +48,14 @@ Express will serve built files from `frontend/dist`.
 
 - `yarn lint` – syntax check for server/client entry files
 - `yarn preview:client` – preview built frontend
+
+## Windows/Corepack note
+
+If you want to use modern Yarn via Corepack, run:
+
+```powershell
+corepack enable
+corepack prepare yarn@stable --activate
+```
+
+But this project no longer requires a pinned Yarn version, so Yarn Classic (`1.x`) also works.
