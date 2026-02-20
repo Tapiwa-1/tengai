@@ -7,6 +7,8 @@ createApp({
       categories: [],
       cart: [],
       error: '',
+      isLoading: false,
+      navLinks: ['Today\'s Deals', 'Customer Service', 'Registry', 'Gift Cards', 'Sell'],
       filters: {
         q: '',
         category: '',
@@ -28,15 +30,22 @@ createApp({
       if (!res.ok) {
         throw new Error(`Request failed: ${res.status}`);
       }
-      return res.json();
+
+      const text = await res.text();
+      return text ? JSON.parse(text) : {};
     },
     async fetchProducts() {
+      this.isLoading = true;
+
       try {
         const params = new URLSearchParams(this.filters).toString();
         this.products = await this.request(`/api/products?${params}`);
         this.error = '';
       } catch (_error) {
+        this.products = [];
         this.error = 'Could not load products. Start the Express server to use live data.';
+      } finally {
+        this.isLoading = false;
       }
     },
     async fetchCategories() {
@@ -54,20 +63,32 @@ createApp({
       }
     },
     async addToCart(productId) {
-      await this.request('/api/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId })
-      });
-      await this.fetchCart();
+      try {
+        await this.request('/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId })
+        });
+        await this.fetchCart();
+      } catch (_error) {
+        this.error = 'Could not add item to cart.';
+      }
     },
     async removeFromCart(itemId) {
-      await this.request(`/api/cart/${itemId}`, { method: 'DELETE' });
-      await this.fetchCart();
+      try {
+        await this.request(`/api/cart/${itemId}`, { method: 'DELETE' });
+        await this.fetchCart();
+      } catch (_error) {
+        this.error = 'Could not remove item from cart.';
+      }
     },
     async clearCart() {
-      await this.request('/api/cart', { method: 'DELETE' });
-      await this.fetchCart();
+      try {
+        await this.request('/api/cart', { method: 'DELETE' });
+        await this.fetchCart();
+      } catch (_error) {
+        this.error = 'Could not clear cart.';
+      }
     }
   },
   async mounted() {

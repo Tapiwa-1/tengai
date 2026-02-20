@@ -19,16 +19,21 @@
         }
       };
     </script>
+    <style>
+      [v-cloak] {
+        display: none;
+      }
+    </style>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body class="bg-slate-100 text-slate-900">
-    <div id="app" class="min-h-screen">
+    <div id="app" v-cloak class="min-h-screen">
       <header class="bg-amazonBlue text-white px-4 py-3 flex items-center gap-4">
         <div class="text-2xl font-extrabold uppercase tracking-wide">tengai<span class="text-amazonOrange">.shop</span></div>
         <div class="flex-1 flex rounded overflow-hidden">
           <input
-            v-model="filters.q"
+            v-model.trim="filters.q"
             @keyup.enter="fetchProducts"
             placeholder="Search Tengai products"
             class="w-full px-3 py-2 text-slate-900 outline-none"
@@ -39,11 +44,7 @@
       </header>
 
       <div class="bg-amazonSlate text-white px-4 py-2 flex flex-wrap gap-4 text-sm">
-        <span>Today's Deals</span>
-        <span>Customer Service</span>
-        <span>Registry</span>
-        <span>Gift Cards</span>
-        <span>Sell</span>
+        <span v-for="link in navLinks" :key="link">{{ link }}</span>
       </div>
 
       <main class="max-w-[1600px] mx-auto p-4 grid grid-cols-1 xl:grid-cols-[240px_1fr_340px] gap-4">
@@ -66,10 +67,14 @@
 
         <section>
           <div class="flex items-center justify-between mb-3 gap-3">
-            <h1 class="text-2xl font-bold">Amazon-inspired storefront</h1>
+            <h1 class="text-2xl font-bold">Vue.js Amazon-inspired storefront</h1>
             <p v-if="error" class="text-red-600 text-sm font-medium">{{ error }}</p>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+
+          <div v-if="isLoading" class="bg-white border border-slate-200 rounded-lg p-6 text-slate-500">Loading products…</div>
+          <div v-else-if="products.length === 0" class="bg-white border border-slate-200 rounded-lg p-6 text-slate-500">No products found. Try different filters.</div>
+
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
             <article v-for="product in products" :key="product.id" class="bg-white rounded-lg border border-slate-200 shadow-sm p-3 flex flex-col gap-2 relative">
               <span v-if="product.badge" class="absolute top-2 left-2 bg-red-700 text-white text-xs px-2 py-1 rounded">{{ product.badge }}</span>
               <img :src="product.image" :alt="product.title" class="w-full aspect-square object-cover rounded-md" />
