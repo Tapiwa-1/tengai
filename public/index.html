@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tengai Store</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div id="app">
+      <header class="top-nav">
+        <div class="logo">tengai<span>.shop</span></div>
+        <div class="search-wrap">
+          <input v-model="filters.q" @keyup.enter="fetchProducts" placeholder="Search Tengai products" />
+          <button @click="fetchProducts">Search</button>
+        </div>
+        <div class="cart-chip">Cart: {{ cartCount }} items</div>
+      </header>
+
+      <div class="sub-nav">
+        <span>Today's Deals</span>
+        <span>Customer Service</span>
+        <span>Registry</span>
+        <span>Gift Cards</span>
+        <span>Sell</span>
+      </div>
+
+      <main class="layout">
+        <aside class="sidebar">
+          <h3>Filter</h3>
+          <label>
+            Category
+            <select v-model="filters.category" @change="fetchProducts">
+              <option value="">All</option>
+              <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
+            </select>
+          </label>
+          <label>
+            Sort
+            <select v-model="filters.sort" @change="fetchProducts">
+              <option value="">Featured</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="rating">Avg. Customer Review</option>
+            </select>
+          </label>
+        </aside>
+
+        <section>
+          <h2 class="section-title">Featured products inspired by Amazon style</h2>
+          <div class="products-grid">
+            <article class="card" v-for="product in products" :key="product.id">
+              <div class="badge" v-if="product.badge">{{ product.badge }}</div>
+              <img :src="product.image" :alt="product.title" />
+              <h3>{{ product.title }}</h3>
+              <p class="description">{{ product.description }}</p>
+              <div class="meta">
+                <span class="rating">⭐ {{ product.rating }}</span>
+                <span class="price">${{ product.price.toFixed(2) }}</span>
+              </div>
+              <button @click="addToCart(product.id)">Add to Cart</button>
+            </article>
+          </div>
+        </section>
+
+        <aside class="cart-panel">
+          <h3>Your Cart</h3>
+          <div v-if="cart.length === 0" class="empty">Your cart is empty.</div>
+          <div v-for="item in cart" :key="item.id" class="cart-item">
+            <img :src="item.image" :alt="item.title" />
+            <div>
+              <strong>{{ item.title }}</strong>
+              <p>${{ item.price.toFixed(2) }} x {{ item.quantity }}</p>
+            </div>
+            <button class="remove" @click="removeFromCart(item.id)">✕</button>
+          </div>
+          <p class="total">Subtotal: ${{ cartSubtotal.toFixed(2) }}</p>
+          <button class="clear" @click="clearCart" :disabled="cart.length === 0">Clear cart</button>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>
