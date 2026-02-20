@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 
 from .config import Config
 from .extensions import db, migrate
@@ -14,6 +15,8 @@ def create_app(config_object=Config):
     app = Flask(__name__)
     app.config.from_object(config_object)
 
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+
     db.init_app(app)
     migrate.init_app(app, db)
 
@@ -22,6 +25,9 @@ def create_app(config_object=Config):
     app.register_blueprint(agent_bp)
     app.register_blueprint(orders_bp)
     app.register_blueprint(admin_bp)
+
+    with app.app_context():
+        db.create_all()
 
     @app.get("/health")
     def health():
