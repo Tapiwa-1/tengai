@@ -206,9 +206,21 @@ app.get('*', (req, res, next) => {
 
 initDb()
   .then(() => {
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       // eslint-disable-next-line no-console
       console.log(`Server running on http://localhost:${PORT}`);
+    });
+
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        // eslint-disable-next-line no-console
+        console.error(`Port ${PORT} is already in use. Stop the other process or run with a different port (example: PORT=3001 yarn start).`);
+        process.exit(1);
+      }
+
+      // eslint-disable-next-line no-console
+      console.error('Server failed to start:', error);
+      process.exit(1);
     });
   })
   .catch((error) => {
