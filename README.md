@@ -2,7 +2,7 @@
 
 Monorepo with:
 
-- `backend/`: Flask + SQLAlchemy + RQ + Redis + MySQL-ready API. Agents upload products manually (including pictures) through `/api/v1/agent/import`.
+- `backend/`: Flask + SQLAlchemy + RQ + Redis + SQLite-first API. Agents upload products manually (including pictures) through `/api/v1/agent/import`.
 - `frontend/`: Vue 3 + Vite + TS + Pinia + Router + Tailwind UI with an Amazon-inspired storefront.
 
 ## Backend quick start
@@ -12,6 +12,7 @@ cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
+# default DATABASE_URL uses local SQLite file (tengai.db)
 python run.py
 ```
 
