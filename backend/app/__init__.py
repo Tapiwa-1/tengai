@@ -1,4 +1,6 @@
-from flask import Flask, request
+from pathlib import Path
+
+from flask import Flask, request, send_from_directory
 
 from .config import Config
 from .extensions import db, migrate
@@ -14,6 +16,9 @@ def create_app(config_object=Config):
     app = Flask(__name__)
     app.config.from_object(config_object)
 
+    upload_dir = Path(app.root_path).parent / app.config["UPLOAD_FOLDER"]
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    app.config["UPLOAD_FOLDER"] = str(upload_dir)
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -45,6 +50,10 @@ def create_app(config_object=Config):
 
     with app.app_context():
         db.create_all()
+
+    @app.get("/uploads/<path:filename>")
+    def uploaded_file(filename: str):
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
     @app.get("/health")
     def health():

@@ -12,6 +12,10 @@ class Role(str, Enum):
     ADMIN = "admin"
 
 
+class ManualUploadSource(str, Enum):
+    MANUAL = "manual"
+
+
 class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
@@ -38,6 +42,8 @@ class Product(db.Model):
     rating = db.Column(db.Float)
     reviews_count = db.Column(db.Integer)
     last_synced_at = db.Column(db.DateTime)
+    manual_price = db.Column(db.Numeric(12, 2))
+    source = db.Column(db.String(20), nullable=False, default=ManualUploadSource.MANUAL.value)
 
 
 class ProductOffer(db.Model):

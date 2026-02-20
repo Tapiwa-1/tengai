@@ -1,3 +1,38 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #111827;
+  background: #eaeded;
+}
+
+body {
+  margin: 0;
+  background: #eaeded;
+}
+
+.top-nav {
+  background: #131921;
+  color: white;
+}
+
+.nav-link {
+  border: 1px solid transparent;
+  border-radius: 2px;
+  padding: 0.35rem 0.45rem;
+}
+
+.nav-link:hover {
+  border-color: white;
+}
+
+.amazon-btn {
+  background: #ffd814;
+  border: 1px solid #fcd200;
+  color: #0f1111;
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+}

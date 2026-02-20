@@ -11,10 +11,10 @@ onMounted(() => store.searchProducts())
 </script>
 <template>
   <section>
-    <h1 class="mb-2 text-xl font-bold">Products</h1>
+    <h1 class="mb-2 text-2xl font-bold">Today's picks for you</h1>
     <SearchBar v-model="query" />
-    <button @click="store.searchProducts(query)" class="my-2 rounded bg-blue-600 px-3 py-2 text-white">Search</button>
-    <p class="mb-3 text-xs text-gray-500">Data provided via Amazon Product API</p>
+    <button @click="store.searchProducts(query)" class="amazon-btn my-3">Search</button>
+    <p class="mb-3 text-xs text-gray-500">Products are uploaded by Tengai agents with manual verification.</p>
     <div class="grid gap-3 md:grid-cols-3">
       <ProductCard v-for="product in store.products" :key="product.id" :product="product" />
     </div>

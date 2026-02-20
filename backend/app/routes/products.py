@@ -17,7 +17,10 @@ def list_products():
             "title": p.title,
             "brand": p.brand,
             "images": p.images or [],
+            "currency": p.currency,
             "last_synced_at": p.last_synced_at.isoformat() if p.last_synced_at else None,
+            "manual_price": float(p.manual_price) if p.manual_price is not None else None,
+            "source": p.source,
         }
         for p in pagination.items
     ]
@@ -42,6 +45,8 @@ def get_product(product_id: int):
             "rating": p.rating,
             "reviews_count": p.reviews_count,
             "last_synced_at": p.last_synced_at.isoformat() if p.last_synced_at else None,
+            "manual_price": float(p.manual_price) if p.manual_price is not None else None,
+            "source": p.source,
             "offers": [
                 {
                     "id": o.id,

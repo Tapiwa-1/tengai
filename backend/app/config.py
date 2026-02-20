@@ -21,3 +21,5 @@ class Config:
     OXYLABS_PASSWORD = os.getenv("OXYLABS_PASSWORD", "")
     OXYLABS_SOURCE = os.getenv("OXYLABS_SOURCE", "amazon_product")
     OXYLABS_AMAZON_DOMAIN = os.getenv("OXYLABS_AMAZON_DOMAIN", "ae")
+
+    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads")
