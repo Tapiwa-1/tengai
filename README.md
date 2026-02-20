@@ -2,7 +2,7 @@
 
 Monorepo with:
 
-- `backend/`: Flask + SQLAlchemy + RQ + Redis + MySQL-ready API. Product imports/sync use SerpApi (Amazon Product engine).
+- `backend/`: Flask + SQLAlchemy + RQ + Redis + MySQL-ready API. Product imports/sync use Oxylabs Amazon Scraper API (`amazon_product`).
 - `frontend/`: Vue 3 + Vite + TS + Pinia + Router + Tailwind UI.
 
 ## Backend quick start

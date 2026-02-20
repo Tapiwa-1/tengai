@@ -16,3 +16,8 @@ class Config:
     AMZ_HOST = os.getenv("AMZ_HOST", "webservices.amazon.ae")
 
     SERPAPI_KEY = os.getenv("SERPAPI_KEY", "")
+
+    OXYLABS_USERNAME = os.getenv("OXYLABS_USERNAME", "")
+    OXYLABS_PASSWORD = os.getenv("OXYLABS_PASSWORD", "")
+    OXYLABS_SOURCE = os.getenv("OXYLABS_SOURCE", "amazon_product")
+    OXYLABS_AMAZON_DOMAIN = os.getenv("OXYLABS_AMAZON_DOMAIN", "ae")
