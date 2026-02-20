@@ -9,7 +9,9 @@ const DB_PATH = path.join(__dirname, 'store.db');
 const db = new sqlite3.Database(DB_PATH);
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+const CLIENT_DIST_PATH = path.join(__dirname, 'frontend', 'dist');
+
+app.use(express.static(CLIENT_DIST_PATH));
 
 const run = (sql, params = []) =>
   new Promise((resolve, reject) => {
@@ -187,6 +189,19 @@ app.delete('/api/cart', async (_req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to clear cart.' });
   }
+});
+
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    next();
+    return;
+  }
+
+  res.sendFile(path.join(CLIENT_DIST_PATH, 'index.html'), (error) => {
+    if (error) {
+      res.status(503).send('Frontend not built. Run `npm run build:client` first.');
+    }
+  });
 });
 
 initDb()

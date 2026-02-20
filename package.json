@@ -6,10 +6,18 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "lint": "node --check server.js public/app.js"
+    "dev:client": "vite --config frontend/vite.config.cjs",
+    "build:client": "vite build --config frontend/vite.config.cjs",
+    "preview:client": "vite preview --config frontend/vite.config.cjs",
+    "lint": "node --check server.js frontend/src/main.js"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "vite": "^5.4.11"
   }
 }
