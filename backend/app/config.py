@@ -1,0 +1,16 @@
+import os
+
+
+class Config:
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///tengai.db")
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret")
+
+    AMZ_ACCESS_KEY = os.getenv("AMZ_ACCESS_KEY", "")
+    AMZ_SECRET_KEY = os.getenv("AMZ_SECRET_KEY", "")
+    AMZ_PARTNER_TAG = os.getenv("AMZ_PARTNER_TAG", "")
+    AMZ_PARTNER_TYPE = os.getenv("AMZ_PARTNER_TYPE", "Associates")
+    AMZ_MARKETPLACE = os.getenv("AMZ_MARKETPLACE", "www.amazon.ae")
+    AMZ_REGION = os.getenv("AMZ_REGION", "eu-west-1")
+    AMZ_HOST = os.getenv("AMZ_HOST", "webservices.amazon.ae")
