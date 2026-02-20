@@ -14,3 +14,5 @@ class Config:
     AMZ_MARKETPLACE = os.getenv("AMZ_MARKETPLACE", "www.amazon.ae")
     AMZ_REGION = os.getenv("AMZ_REGION", "eu-west-1")
     AMZ_HOST = os.getenv("AMZ_HOST", "webservices.amazon.ae")
+
+    SERPAPI_KEY = os.getenv("SERPAPI_KEY", "")
