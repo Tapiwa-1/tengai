@@ -17,6 +17,16 @@ const filters = reactive({
   sort: ''
 });
 
+const authToken = ref(localStorage.getItem('authToken') || '');
+const currentUser = ref(null);
+const authMode = ref('login');
+const authForm = reactive({
+  name: '',
+  email: '',
+  password: ''
+});
+const authError = ref('');
+
 const couponCode = ref('');
 const appliedCoupon = ref(null);
 const isCheckingOut = ref(false);
@@ -32,8 +42,22 @@ const cartDiscount = computed(() => {
 });
 const cartTotal = computed(() => Math.max(cartSubtotal.value - cartDiscount.value, 0));
 
-async function request(url, options) {
-  const response = await fetch(url, options);
+function authHeaders(extra = {}) {
+  if (!authToken.value) {
+    return extra;
+  }
+
+  return {
+    ...extra,
+    Authorization: `Bearer ${authToken.value}`
+  };
+}
+
+async function request(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    headers: authHeaders(options.headers || {})
+  });
   const text = await response.text();
   const payload = text ? JSON.parse(text) : {};
 
@@ -42,6 +66,69 @@ async function request(url, options) {
   }
 
   return payload;
+}
+
+async function registerAccount() {
+  authError.value = '';
+  try {
+    const data = await request('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(authForm)
+    });
+
+    authToken.value = data.token;
+    currentUser.value = data.user;
+    localStorage.setItem('authToken', data.token);
+    authForm.name = '';
+    authForm.email = '';
+    authForm.password = '';
+    info.value = `Welcome, ${data.user.name}!`;
+  } catch (err) {
+    authError.value = err.message || 'Could not create account.';
+  }
+}
+
+async function loginAccount() {
+  authError.value = '';
+  try {
+    const data = await request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: authForm.email, password: authForm.password })
+    });
+
+    authToken.value = data.token;
+    currentUser.value = data.user;
+    localStorage.setItem('authToken', data.token);
+    authForm.email = '';
+    authForm.password = '';
+    info.value = `Welcome back, ${data.user.name}!`;
+  } catch (err) {
+    authError.value = err.message || 'Could not sign in.';
+  }
+}
+
+async function hydrateAuthSession() {
+  if (!authToken.value) {
+    return;
+  }
+
+  try {
+    const data = await request('/api/auth/me');
+    currentUser.value = data.user;
+  } catch (_err) {
+    authToken.value = '';
+    currentUser.value = null;
+    localStorage.removeItem('authToken');
+  }
+}
+
+function logoutAccount() {
+  authToken.value = '';
+  currentUser.value = null;
+  localStorage.removeItem('authToken');
+  info.value = 'Signed out successfully.';
 }
 
 async function fetchProducts() {
@@ -173,7 +260,7 @@ async function checkout() {
 }
 
 onMounted(async () => {
-  await Promise.all([fetchProducts(), fetchCategories(), fetchCart(), fetchDeals(), fetchOrders()]);
+  await Promise.all([hydrateAuthSession(), fetchProducts(), fetchCategories(), fetchCart(), fetchDeals(), fetchOrders()]);
 });
 </script>
 
@@ -194,6 +281,25 @@ onMounted(async () => {
 
     <main class="layout">
       <aside class="sidebar">
+        <h2>Account</h2>
+        <div v-if="currentUser" class="account-card">
+          <p class="welcome">Hi, {{ currentUser.name }}</p>
+          <p class="small-text">{{ currentUser.email }}</p>
+          <button @click="logoutAccount">Sign out</button>
+        </div>
+        <div v-else class="account-card">
+          <div class="auth-switch">
+            <button :class="{ active: authMode === 'login' }" @click="authMode = 'login'">Sign in</button>
+            <button :class="{ active: authMode === 'register' }" @click="authMode = 'register'">Create account</button>
+          </div>
+          <input v-if="authMode === 'register'" v-model.trim="authForm.name" placeholder="Full name" />
+          <input v-model.trim="authForm.email" placeholder="Email" type="email" />
+          <input v-model="authForm.password" placeholder="Password" type="password" />
+          <button v-if="authMode === 'register'" @click="registerAccount">Create account</button>
+          <button v-else @click="loginAccount">Sign in</button>
+          <p v-if="authError" class="error">{{ authError }}</p>
+        </div>
+
         <h2>Filters</h2>
         <label>Category</label>
         <select v-model="filters.category" @change="fetchProducts">
@@ -230,7 +336,7 @@ onMounted(async () => {
           </div>
         </div>
 
-        <section class="deals-strip" v-if="deals.length">
+        <section v-if="deals.length" class="deals-strip">
           <h2>Deals for you</h2>
           <div class="deal-list">
             <article v-for="deal in deals" :key="deal.id" class="deal-card">

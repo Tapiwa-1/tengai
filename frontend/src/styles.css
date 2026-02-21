@@ -85,7 +85,8 @@ button:disabled {
 }
 
 .sidebar label,
-.sidebar select {
+.sidebar select,
+.sidebar input {
   display: block;
   width: 100%;
   margin-top: 0.5rem;
@@ -112,6 +113,41 @@ button:disabled {
   justify-content: space-between;
   padding: 0.35rem 0;
   border-bottom: 1px solid #f1f1f1;
+}
+
+
+.account-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 0.7rem;
+  margin-bottom: 1rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.auth-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.auth-switch button {
+  background: #f1f5f9;
+}
+
+.auth-switch button.active {
+  background: #ffd814;
+}
+
+.welcome {
+  font-weight: 700;
+  margin: 0;
+}
+
+.small-text {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
 }
 
 .section-head {

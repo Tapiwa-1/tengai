@@ -1,5 +1,7 @@
 const path = require('path');
 const express = require('express');
+const crypto = require('crypto');
+const { promisify } = require('util');
 const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
@@ -46,6 +48,34 @@ const get = (sql, params = []) =>
     });
   });
 
+
+const scryptAsync = promisify(crypto.scrypt);
+
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derivedKey = await scryptAsync(password, salt, 64);
+  return `${salt}:${derivedKey.toString('hex')}`;
+}
+
+async function verifyPassword(password, storedHash) {
+  const [salt, hashHex] = String(storedHash).split(':');
+  if (!salt || !hashHex) {
+    return false;
+  }
+
+  const derivedKey = await scryptAsync(password, salt, 64);
+  const storedKey = Buffer.from(hashHex, 'hex');
+  if (storedKey.length !== derivedKey.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(storedKey, derivedKey);
+}
+
+function createAuthToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
 async function initDb() {
   await run(`
     CREATE TABLE IF NOT EXISTS products (
@@ -85,6 +115,27 @@ async function initDb() {
       total REAL NOT NULL,
       coupon_code TEXT,
       created_at TEXT NOT NULL
+    )
+  `);
+
+
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `);
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS auth_tokens (
+      token TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users (id)
     )
   `);
 
@@ -149,6 +200,129 @@ function calculateCartTotals(items, discountPercent = 0) {
     total
   };
 }
+
+
+
+async function authenticate(req, res, next) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+
+  if (!token) {
+    req.user = null;
+    next();
+    return;
+  }
+
+  try {
+    const user = await get(`
+      SELECT u.id, u.name, u.email
+      FROM auth_tokens t
+      JOIN users u ON u.id = t.user_id
+      WHERE t.token = ?
+    `, [token]);
+
+    req.user = user || null;
+    next();
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to verify session.' });
+  }
+}
+
+app.use(authenticate);
+
+app.post('/api/auth/register', async (req, res) => {
+  const name = String(req.body.name || '').trim();
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const password = String(req.body.password || '');
+
+  if (!name || !email || !password) {
+    res.status(400).json({ error: 'name, email, and password are required.' });
+    return;
+  }
+
+  if (password.length < 6) {
+    res.status(400).json({ error: 'Password must be at least 6 characters.' });
+    return;
+  }
+
+  try {
+    const existing = await get('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing) {
+      res.status(409).json({ error: 'Email is already registered.' });
+      return;
+    }
+
+    const passwordHash = await hashPassword(password);
+    const createdAt = new Date().toISOString();
+
+    const created = await run(
+      'INSERT INTO users (name, email, password_hash, created_at) VALUES (?, ?, ?, ?)',
+      [name, email, passwordHash, createdAt]
+    );
+
+    const token = createAuthToken();
+    await run('INSERT INTO auth_tokens (token, user_id, created_at) VALUES (?, ?, ?)', [token, created.lastID, createdAt]);
+
+    res.status(201).json({
+      token,
+      user: {
+        id: created.lastID,
+        name,
+        email
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Could not create account.' });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const password = String(req.body.password || '');
+
+  if (!email || !password) {
+    res.status(400).json({ error: 'email and password are required.' });
+    return;
+  }
+
+  try {
+    const user = await get('SELECT id, name, email, password_hash AS passwordHash FROM users WHERE email = ?', [email]);
+
+    if (!user) {
+      res.status(401).json({ error: 'Invalid email or password.' });
+      return;
+    }
+
+    const validPassword = await verifyPassword(password, user.passwordHash);
+    if (!validPassword) {
+      res.status(401).json({ error: 'Invalid email or password.' });
+      return;
+    }
+
+    const token = createAuthToken();
+    await run('INSERT INTO auth_tokens (token, user_id, created_at) VALUES (?, ?, ?)', [token, user.id, new Date().toISOString()]);
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Could not sign in.' });
+  }
+});
+
+app.get('/api/auth/me', (req, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Unauthorized.' });
+    return;
+  }
+
+  res.json({ user: req.user });
+});
 
 app.get('/api/products', async (req, res) => {
   const { q = '', category = '', sort = '' } = req.query;
