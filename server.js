@@ -69,6 +69,37 @@ async function initDb() {
     )
   `);
 
+  await run(`
+    CREATE TABLE IF NOT EXISTS coupons (
+      code TEXT PRIMARY KEY,
+      discount_percent REAL NOT NULL,
+      min_subtotal REAL NOT NULL DEFAULT 0
+    )
+  `);
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      subtotal REAL NOT NULL,
+      discount REAL NOT NULL,
+      total REAL NOT NULL,
+      coupon_code TEXT,
+      created_at TEXT NOT NULL
+    )
+  `);
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      quantity INTEGER NOT NULL,
+      price REAL NOT NULL,
+      FOREIGN KEY (order_id) REFERENCES orders (id),
+      FOREIGN KEY (product_id) REFERENCES products (id)
+    )
+  `);
+
   const row = await get('SELECT COUNT(*) AS count FROM products');
 
   if (row.count === 0) {
@@ -91,6 +122,32 @@ async function initDb() {
       );
     }
   }
+
+  const couponCount = await get('SELECT COUNT(*) AS count FROM coupons');
+
+  if (couponCount.count === 0) {
+    const seedCoupons = [
+      ['SAVE10', 10, 50],
+      ['PRIME20', 20, 120],
+      ['WELCOME5', 5, 0]
+    ];
+
+    for (const coupon of seedCoupons) {
+      await run('INSERT INTO coupons (code, discount_percent, min_subtotal) VALUES (?, ?, ?)', coupon);
+    }
+  }
+}
+
+function calculateCartTotals(items, discountPercent = 0) {
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const discount = subtotal * (discountPercent / 100);
+  const total = Math.max(subtotal - discount, 0);
+
+  return {
+    subtotal,
+    discount,
+    total
+  };
 }
 
 app.get('/api/products', async (req, res) => {
@@ -133,6 +190,21 @@ app.get('/api/categories', async (_req, res) => {
     res.json(categories.map((item) => item.category));
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch categories.' });
+  }
+});
+
+app.get('/api/deals', async (_req, res) => {
+  try {
+    const deals = await all(`
+      SELECT id, title, price, rating, image, badge
+      FROM products
+      WHERE badge IS NOT NULL
+      ORDER BY rating DESC, price ASC
+      LIMIT 4
+    `);
+    res.json(deals);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch deals.' });
   }
 });
 
@@ -188,6 +260,128 @@ app.delete('/api/cart', async (_req, res) => {
     res.json({ message: 'Cart cleared.' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to clear cart.' });
+  }
+});
+
+app.post('/api/cart/apply-coupon', async (req, res) => {
+  const { code = '' } = req.body;
+
+  if (!code.trim()) {
+    res.status(400).json({ error: 'Coupon code is required.' });
+    return;
+  }
+
+  try {
+    const items = await all(`
+      SELECT c.quantity, p.price
+      FROM cart_items c
+      JOIN products p ON p.id = c.product_id
+    `);
+
+    if (items.length === 0) {
+      res.status(400).json({ error: 'Your cart is empty.' });
+      return;
+    }
+
+    const coupon = await get('SELECT code, discount_percent AS discountPercent, min_subtotal AS minSubtotal FROM coupons WHERE code = ?', [code.trim().toUpperCase()]);
+
+    if (!coupon) {
+      res.status(404).json({ error: 'Coupon not found.' });
+      return;
+    }
+
+    const totals = calculateCartTotals(items, coupon.discountPercent);
+
+    if (totals.subtotal < coupon.minSubtotal) {
+      res.status(400).json({
+        error: `Coupon requires a minimum subtotal of $${coupon.minSubtotal.toFixed(2)}.`
+      });
+      return;
+    }
+
+    res.json({
+      code: coupon.code,
+      discountPercent: coupon.discountPercent,
+      ...totals
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to apply coupon.' });
+  }
+});
+
+app.post('/api/checkout', async (req, res) => {
+  const couponCode = req.body.couponCode ? String(req.body.couponCode).trim().toUpperCase() : null;
+
+  try {
+    const items = await all(`
+      SELECT c.product_id AS productId, c.quantity, p.price
+      FROM cart_items c
+      JOIN products p ON p.id = c.product_id
+    `);
+
+    if (items.length === 0) {
+      res.status(400).json({ error: 'Cart is empty.' });
+      return;
+    }
+
+    let discountPercent = 0;
+
+    if (couponCode) {
+      const coupon = await get('SELECT discount_percent AS discountPercent, min_subtotal AS minSubtotal FROM coupons WHERE code = ?', [couponCode]);
+
+      if (!coupon) {
+        res.status(404).json({ error: 'Coupon not found.' });
+        return;
+      }
+
+      const preTotals = calculateCartTotals(items, coupon.discountPercent);
+      if (preTotals.subtotal < coupon.minSubtotal) {
+        res.status(400).json({ error: `Coupon requires a minimum subtotal of $${coupon.minSubtotal.toFixed(2)}.` });
+        return;
+      }
+
+      discountPercent = coupon.discountPercent;
+    }
+
+    const totals = calculateCartTotals(items, discountPercent);
+    const orderTime = new Date().toISOString();
+
+    const result = await run(
+      `INSERT INTO orders (subtotal, discount, total, coupon_code, created_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [totals.subtotal, totals.discount, totals.total, couponCode, orderTime]
+    );
+
+    for (const item of items) {
+      await run(
+        'INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)',
+        [result.lastID, item.productId, item.quantity, item.price]
+      );
+    }
+
+    await run('DELETE FROM cart_items');
+
+    res.status(201).json({
+      message: 'Order placed successfully.',
+      orderId: result.lastID,
+      ...totals
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Checkout failed.' });
+  }
+});
+
+app.get('/api/orders', async (_req, res) => {
+  try {
+    const orders = await all(`
+      SELECT id, subtotal, discount, total, coupon_code AS couponCode, created_at AS createdAt
+      FROM orders
+      ORDER BY id DESC
+      LIMIT 10
+    `);
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch orders.' });
   }
 });
 

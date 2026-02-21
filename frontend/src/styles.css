@@ -46,6 +46,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .sub-nav {
   background: #232f3e;
   color: #fff;
@@ -57,7 +62,7 @@ button {
 
 .layout {
   display: grid;
-  grid-template-columns: 220px 1fr 320px;
+  grid-template-columns: 220px 1fr 330px;
   gap: 1rem;
   padding: 1rem;
 }
@@ -65,7 +70,9 @@ button {
 .sidebar,
 .cart-panel,
 .card,
-.state-card {
+.state-card,
+.deals-strip,
+.orders-box {
   background: #fff;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -84,8 +91,27 @@ button {
   margin-top: 0.5rem;
 }
 
-.sidebar select {
+.sidebar select,
+.coupon-row input {
   padding: 0.45rem;
+}
+
+.orders-box {
+  margin-top: 1rem;
+  padding: 0.75rem;
+}
+
+.orders-box ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.orders-box li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #f1f1f1;
 }
 
 .section-head {
@@ -98,8 +124,44 @@ button {
   color: #b91c1c;
 }
 
+.info {
+  color: #0f766e;
+}
+
 .state-card {
   padding: 1rem;
+}
+
+.deals-strip {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+}
+
+.deals-strip h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+}
+
+.deal-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.deal-card {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 0.5rem;
+  border: 1px solid #ececec;
+  border-radius: 6px;
+  padding: 0.4rem;
+}
+
+.deal-card img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 4px;
 }
 
 .products-grid {
@@ -149,6 +211,11 @@ button {
   font-weight: 700;
 }
 
+.discount {
+  color: #0f766e;
+  font-weight: 700;
+}
+
 .cart-item {
   display: grid;
   grid-template-columns: 52px 1fr auto;
@@ -166,6 +233,18 @@ button {
 
 .icon-btn {
   background: #f1f5f9;
+}
+
+.coupon-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+}
+
+.cart-actions {
+  display: grid;
+  gap: 0.5rem;
 }
 
 .muted {
